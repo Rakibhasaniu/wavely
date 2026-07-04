@@ -1,9 +1,16 @@
 'use client';
 
+import { clearError, registerUser } from '@/store/slices/authSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function RegisterForm() {
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const { isLoading, error } = useAppSelector((s) => s.auth);
+
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -11,15 +18,31 @@ export default function RegisterForm() {
     password: '',
     confirmPassword: '',
   });
+  const [localError, setLocalError] = useState('');
+
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLocalError('');
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: wire to auth API
+    if (form.password !== form.confirmPassword) {
+      setLocalError('Passwords do not match');
+      return;
+    }
+    const { confirmPassword: _, ...payload } = form;
+    const result = await dispatch(registerUser(payload));
+    if (registerUser.fulfilled.match(result)) {
+      router.push('/feed');
+    }
   };
+
+  const displayError = localError || error;
 
   return (
     <section className="_social_registration_wrapper _layout_main_wrapper">
@@ -66,6 +89,12 @@ export default function RegisterForm() {
                 <div className="_social_registration_content_bottom_txt _mar_b40">
                   <span>Or</span>
                 </div>
+
+                {displayError && (
+                  <div className="alert alert-danger py-2 mb-3" role="alert">
+                    {displayError}
+                  </div>
+                )}
 
                 <form className="_social_registration_form" onSubmit={handleSubmit}>
                   <div className="row">
@@ -163,8 +192,9 @@ export default function RegisterForm() {
                         <button
                           type="submit"
                           className="_social_registration_form_btn_link _btn1"
+                          disabled={isLoading}
                         >
-                          Register now
+                          {isLoading ? 'Creating account...' : 'Register now'}
                         </button>
                       </div>
                     </div>
