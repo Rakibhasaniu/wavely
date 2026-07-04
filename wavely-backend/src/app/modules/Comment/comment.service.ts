@@ -2,6 +2,7 @@ import httpStatus from 'http-status';
 import { Types } from 'mongoose';
 import AppError from '../../errors/AppError';
 import { deleteLikesForTarget, attachRecentLikers, getAllLikersSorted, toggleLike as toggleLikeRecord } from '../Like/like.service';
+import { Like } from '../Like/like.model';
 import { Post } from '../Post/post.model';
 import { Reply } from '../Reply/reply.model';
 import { Comment } from './comment.model';
@@ -44,6 +45,21 @@ const getComments = async (postId: string, userId: string, cursor?: string) => {
   comments.forEach((c) => {
     (c as unknown as { likes: unknown[] }).likes = likeMap.get(c._id.toString()) ?? [];
   });
+
+  // likedByMe: recent-likers preview can't answer "did I like this?" — one batched query
+  if (comments.length > 0) {
+    const myLikes = await Like.find({
+      targetType: 'comment',
+      targetId: { $in: comments.map((c) => c._id) },
+      userId: new Types.ObjectId(userId),
+    })
+      .select('targetId')
+      .lean();
+    const likedSet = new Set(myLikes.map((l) => l.targetId.toString()));
+    comments.forEach((c) => {
+      (c as unknown as { likedByMe: boolean }).likedByMe = likedSet.has(c._id.toString());
+    });
+  }
 
   const nextCursor =
     comments.length === COMMENTS_PER_PAGE

@@ -10,6 +10,7 @@ import {
   getAllLikersSorted,
   toggleLike as toggleLikeRecord,
 } from '../Like/like.service';
+import { Like } from '../Like/like.model';
 import { Post } from './post.model';
 
 const POSTS_PER_PAGE = 10;
@@ -40,6 +41,23 @@ const getFeed = async (userId: string, cursor?: string) => {
   posts.forEach((p) => {
     (p as unknown as { likes: unknown[] }).likes = likeMap.get(p._id.toString()) ?? [];
   });
+
+  // likedByMe: one batched $in query for the whole page — the likes preview
+  // above holds only the 3 most recent likers, so it cannot answer
+  // "did I like this?" reliably
+  if (posts.length > 0) {
+    const myLikes = await Like.find({
+      targetType: 'post',
+      targetId: { $in: posts.map((p) => p._id) },
+      userId: new Types.ObjectId(userId),
+    })
+      .select('targetId')
+      .lean();
+    const likedSet = new Set(myLikes.map((l) => l.targetId.toString()));
+    posts.forEach((p) => {
+      (p as unknown as { likedByMe: boolean }).likedByMe = likedSet.has(p._id.toString());
+    });
+  }
 
 
   if (posts.length > 0) {
