@@ -1,18 +1,32 @@
 'use client';
 
+import { clearError, loginUser } from '@/store/slices/authSlice';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function LoginForm() {
+  const dispatch = useAppDispatch();
+  const router = useRouter();
+  const { isLoading, error } = useAppSelector((s) => s.auth);
+
   const [form, setForm] = useState({ email: '', password: '' });
+
+  useEffect(() => {
+    dispatch(clearError());
+  }, [dispatch]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: wire to auth API
+    const result = await dispatch(loginUser(form));
+    if (loginUser.fulfilled.match(result)) {
+      router.push('/feed');
+    }
   };
 
   return (
@@ -60,6 +74,12 @@ export default function LoginForm() {
                 <div className="_social_login_content_bottom_txt _mar_b40">
                   <span>Or</span>
                 </div>
+
+                {error && (
+                  <div className="alert alert-danger py-2 mb-3" role="alert">
+                    {error}
+                  </div>
+                )}
 
                 <form className="_social_login_form" onSubmit={handleSubmit}>
                   <div className="row">
@@ -117,8 +137,12 @@ export default function LoginForm() {
                   <div className="row">
                     <div className="col-12">
                       <div className="_social_login_form_btn _mar_t40 _mar_b60">
-                        <button type="submit" className="_social_login_form_btn_link _btn1">
-                          Login now
+                        <button
+                          type="submit"
+                          className="_social_login_form_btn_link _btn1"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? 'Logging in...' : 'Login now'}
                         </button>
                       </div>
                     </div>
