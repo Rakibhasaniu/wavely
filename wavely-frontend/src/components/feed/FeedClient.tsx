@@ -5,6 +5,7 @@ import { useAuthInit } from '@/hooks/useAuthInit';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Navbar from '../shared/Navbar';
+import CreatePost from './CreatePost';
 import Spinner from '../shared/Spinner';
 
 export default function FeedClient() {
@@ -271,10 +272,7 @@ export default function FeedClient() {
                       </div>
                     </div>
 
-                    {/* CreatePost + posts list arrive in next commits */}
-                    <div className="_feed_inner_area _b_radious6 _padd_t24 _padd_b24 text-center _mar_b16">
-                      <p style={{ color: '#666' }}>Feed content coming soon.</p>
-                    </div>
+                    <CreatePost />
                   </div>
                 </div>
               </div>
