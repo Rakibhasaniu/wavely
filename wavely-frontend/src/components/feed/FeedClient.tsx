@@ -4,7 +4,7 @@ import { fetchFeed, resetFeed } from '@/store/slices/postSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useAuthInit } from '@/hooks/useAuthInit';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Navbar from '../shared/Navbar';
 import Spinner from '../shared/Spinner';
 import CreatePost from './CreatePost';
@@ -17,7 +17,7 @@ export default function FeedClient() {
   const router = useRouter();
   const { user } = useAppSelector((s) => s.auth);
   const { posts, isLoading, hasMore, nextCursor } = useAppSelector((s) => s.posts);
-  const loaderRef = useRef<HTMLDivElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
   const initialized = useRef(false);
   const [darkMode, setDarkMode] = useState(false);
 
@@ -34,19 +34,27 @@ export default function FeedClient() {
     }
   }, [dispatch]);
 
-  useEffect(() => {
-    if (!loaderRef.current) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoading && nextCursor) {
-          dispatch(fetchFeed(nextCursor));
-        }
-      },
-      { threshold: 0.1 },
-    );
-    observer.observe(loaderRef.current);
-    return () => observer.disconnect();
-  }, [dispatch, hasMore, isLoading, nextCursor]);
+  // callback ref: observer attaches the moment the sentinel div mounts,
+  // re-attaches whenever pagination state changes (stale closure safe)
+  const loaderRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (observerRef.current) observerRef.current.disconnect();
+      if (!node) return;
+      // root = the middle column: template CSS makes it the actual scroll
+      // container (height: calc(100vh - 75px); overflow: auto), the page
+      // body never scrolls — viewport-rooted observation misses it
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore && !isLoading && nextCursor) {
+            dispatch(fetchFeed(nextCursor));
+          }
+        },
+        { root: node.closest('._layout_middle_wrap'), rootMargin: '300px' },
+      );
+      observerRef.current.observe(node);
+    },
+    [dispatch, hasMore, isLoading, nextCursor],
+  );
 
   if (!user) return <Spinner />;
 
