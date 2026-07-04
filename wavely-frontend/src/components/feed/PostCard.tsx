@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { IPost } from '@/types';
 import { useState } from 'react';
 import Avatar from '../shared/Avatar';
+import CommentSection from './CommentSection';
 import LikesModal from './LikesModal';
 
 interface Props { post: IPost; }
@@ -255,6 +256,8 @@ export default function PostCard({ post }: Props) {
       </div>
 
       {/* Comment section */}
+      {showComments && <CommentSection postId={post._id} />}
+
       {showLikes && (
         <LikesModal targetType="posts" targetId={post._id} onClose={() => setShowLikes(false)} />
       )}
