@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import ReduxProvider from '@/providers/ReduxProvider';
 
 export const metadata: Metadata = {
   title: 'Wavely',
@@ -28,7 +29,7 @@ export default function RootLayout({
         <link rel="stylesheet" href="/assets/css/responsive.css" />
       </head>
       <body suppressHydrationWarning>
-        {children}
+        <ReduxProvider>{children}</ReduxProvider>
         <script src="/assets/js/bootstrap.bundle.min.js" async />
       </body>
     </html>
