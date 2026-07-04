@@ -1,12 +1,14 @@
 'use client';
 
+import { fetchFeed, resetFeed } from '@/store/slices/postSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useAuthInit } from '@/hooks/useAuthInit';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Navbar from '../shared/Navbar';
-import CreatePost from './CreatePost';
 import Spinner from '../shared/Spinner';
+import CreatePost from './CreatePost';
+import PostCard from './PostCard';
 
 export default function FeedClient() {
   useAuthInit();
@@ -14,12 +16,37 @@ export default function FeedClient() {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { user } = useAppSelector((s) => s.auth);
+  const { posts, isLoading, hasMore, nextCursor } = useAppSelector((s) => s.posts);
+  const loaderRef = useRef<HTMLDivElement>(null);
+  const initialized = useRef(false);
   const [darkMode, setDarkMode] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
     if (!token) router.replace('/login');
   }, [router]);
+
+  useEffect(() => {
+    if (!initialized.current) {
+      initialized.current = true;
+      dispatch(resetFeed());
+      dispatch(fetchFeed(null));
+    }
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (!loaderRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoading && nextCursor) {
+          dispatch(fetchFeed(nextCursor));
+        }
+      },
+      { threshold: 0.1 },
+    );
+    observer.observe(loaderRef.current);
+    return () => observer.disconnect();
+  }, [dispatch, hasMore, isLoading, nextCursor]);
 
   if (!user) return <Spinner />;
 
@@ -273,6 +300,25 @@ export default function FeedClient() {
                     </div>
 
                     <CreatePost />
+
+                    {posts.length === 0 && !isLoading && (
+                      <div className="_feed_inner_area _b_radious6 _padd_t24 _padd_b24 text-center _mar_b16">
+                        <p style={{ color: '#666' }}>No posts yet. Be the first to post!</p>
+                      </div>
+                    )}
+
+                    {posts.map((post) => (
+                      <PostCard key={post._id} post={post} />
+                    ))}
+
+                    <div ref={loaderRef} style={{ height: 20 }} />
+                    {isLoading && <Spinner />}
+
+                    {!hasMore && posts.length > 0 && (
+                      <p className="text-center py-3" style={{ color: '#999', fontSize: 13 }}>
+                        You&apos;re all caught up!
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
