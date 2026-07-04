@@ -30,6 +30,7 @@ export interface IPost {
   visibility: TVisibility;
   likes: IUser[];
   likesCount: number;
+  likedByMe?: boolean;
   commentsCount?: number;
   createdAt: string;
   updatedAt: string;
@@ -53,6 +54,7 @@ export interface IComment {
   text: string;
   likes: IUser[];
   likesCount: number;
+  likedByMe?: boolean;
   repliesCount: number;
   createdAt: string;
 }
@@ -75,6 +77,7 @@ export interface IReply {
   text: string;
   likes: IUser[];
   likesCount: number;
+  likedByMe?: boolean;
   createdAt: string;
 }
 

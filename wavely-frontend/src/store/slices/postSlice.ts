@@ -131,6 +131,7 @@ const postSlice = createSlice({
       const post = state.posts.find((p) => p._id === action.payload.postId);
       if (post) {
         post.likesCount = action.payload.likesCount;
+        post.likedByMe = action.payload.liked;
         if (action.payload.likes) post.likes = action.payload.likes;
       }
     });

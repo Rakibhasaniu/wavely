@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { IPost } from '@/types';
 import { useState } from 'react';
 import Avatar from '../shared/Avatar';
+import LikesModal from './LikesModal';
 
 interface Props { post: IPost; }
 
@@ -13,9 +14,10 @@ export default function PostCard({ post }: Props) {
   const { user } = useAppSelector((s) => s.auth);
   const [showComments, setShowComments] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [showLikes, setShowLikes] = useState(false);
 
   const isOwner = user?._id === post.author._id;
-  const isLiked = post.likes?.some((u) => u._id === user?._id);
+  const isLiked = post.likedByMe ?? post.likes?.some((u) => u._id === user?._id);
 
   const timeAgo = (date: string) => {
     const diff = Date.now() - new Date(date).getTime();
@@ -184,7 +186,7 @@ export default function PostCard({ post }: Props) {
                   </div>
                 );
               })}
-              <p className="_feed_inner_timeline_total_reacts_para">{post.likesCount}</p>
+              <p className="_feed_inner_timeline_total_reacts_para" style={{ cursor: 'pointer' }} onClick={() => setShowLikes(true)}>{post.likesCount}</p>
             </>
           )}
         </div>
@@ -253,6 +255,9 @@ export default function PostCard({ post }: Props) {
       </div>
 
       {/* Comment section */}
+      {showLikes && (
+        <LikesModal targetType="posts" targetId={post._id} onClose={() => setShowLikes(false)} />
+      )}
     </div>
   );
 }
