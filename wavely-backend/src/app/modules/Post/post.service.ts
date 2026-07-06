@@ -80,12 +80,24 @@ const getFeed = async (userId: string, cursor?: string) => {
   return { posts, nextCursor };
 };
 
+// eager upload endpoint — returns the CDN URL for a later createPost call
+const uploadImage = async (userId: string, file?: Express.Multer.File) => {
+  if (!file) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Image file is required');
+  }
+  const imageName = 'post_' + userId + '_' + Date.now();
+  const { secure_url } = (await sendImageToCloudinary(imageName, file.path)) as {
+    secure_url: string;
+  };
+  return { url: secure_url };
+};
+
 const createPost = async (
   userId: string,
-  payload: { text: string; visibility: 'public' | 'private' },
+  payload: { text: string; visibility: 'public' | 'private'; imageUrl?: string },
   file?: Express.Multer.File,
 ) => {
-  let imageUrl = '';
+  let imageUrl = payload.imageUrl ?? '';
 
   if (file) {
     const imageName = `post_${userId}_${Date.now()}`;
@@ -181,6 +193,7 @@ const getLikes = async (postId: string, userId: string, cursor?: string) => {
 export const PostServices = {
   getFeed,
   createPost,
+  uploadImage,
   deletePost,
   toggleLike,
   getLikes,

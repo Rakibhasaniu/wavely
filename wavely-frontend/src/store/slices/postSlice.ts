@@ -29,11 +29,13 @@ export const fetchFeed = createAsyncThunk(
 
 export const createPost = createAsyncThunk(
   'posts/create',
-  async (formData: FormData, { rejectWithValue }) => {
+  async (
+    payload: { text: string; visibility: 'public' | 'private'; imageUrl?: string },
+    { rejectWithValue },
+  ) => {
     try {
-      const res = await axiosPrivate.post('/posts', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      // image already lives on Cloudinary (eager upload) — small JSON call, instant
+      const res = await axiosPrivate.post('/posts', payload);
       return res.data.data as IPost;
     } catch (err: unknown) {
       const error = err as { response?: { data?: { message?: string } } };

@@ -23,6 +23,13 @@ router.post(
   PostControllers.createPost,
 );
 
+router.post(
+  '/upload-image',
+  auth,
+  upload.single('image'),
+  PostControllers.uploadImage,
+);
+
 router.delete('/:id', auth, PostControllers.deletePost);
 
 router.patch('/:id/like', auth, PostControllers.toggleLike);

@@ -30,6 +30,19 @@ const createPost = catchAsync(async (req, res) => {
   });
 });
 
+// POST /posts/upload-image — eager upload: image goes to Cloudinary while the
+// user is still typing; createPost then receives only the returned URL (fast)
+const uploadImage = catchAsync(async (req, res) => {
+  const result = await PostServices.uploadImage(req.user.userId, req.file);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Image uploaded successfully',
+    data: result,
+  });
+});
+
 const deletePost = catchAsync(async (req, res) => {
   await PostServices.deletePost(req.params.id, req.user.userId);
 
@@ -70,6 +83,7 @@ const getLikes = catchAsync(async (req, res) => {
 export const PostControllers = {
   getFeed,
   createPost,
+  uploadImage,
   deletePost,
   toggleLike,
   getLikes,

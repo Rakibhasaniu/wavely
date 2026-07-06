@@ -1,5 +1,6 @@
 'use client';
 
+import { axiosPrivate } from '@/lib/axios';
 import { createPost } from '@/store/slices/postSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useRef, useState } from 'react';
@@ -11,8 +12,11 @@ export default function CreatePost() {
 
   const [text, setText] = useState('');
   const [visibility, setVisibility] = useState<'public' | 'private'>('public');
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
+  // eager upload: image goes to Cloudinary the moment it's selected,
+  // while the user is still typing — Post click then sends only JSON
+  const [imageUrl, setImageUrl] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const compressImage = (file: File): Promise<File> =>
@@ -46,23 +50,38 @@ export default function CreatePost() {
     const file = e.target.files?.[0];
     if (!file) return;
     const compressed = await compressImage(file);
-    setImageFile(compressed);
     setImagePreview(URL.createObjectURL(compressed));
+
+    // upload NOW, in the background — by the time the user finishes
+    // typing, the URL is usually already here
+    setIsUploading(true);
+    setImageUrl('');
+    try {
+      const fd = new FormData();
+      fd.append('image', compressed);
+      const res = await axiosPrivate.post('/posts/upload-image', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setImageUrl(res.data.data.url);
+    } catch {
+      setImagePreview('');
+      if (fileRef.current) fileRef.current.value = '';
+      alert('Image upload failed — please try again');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() || isUploading) return;
 
-    const formData = new FormData();
-    formData.append('text', text);
-    formData.append('visibility', visibility);
-    if (imageFile) formData.append('image', imageFile);
-
-    const result = await dispatch(createPost(formData));
+    const result = await dispatch(
+      createPost({ text, visibility, ...(imageUrl && { imageUrl }) }),
+    );
     if (createPost.fulfilled.match(result)) {
       setText('');
-      setImageFile(null);
+      setImageUrl('');
       setImagePreview('');
       if (fileRef.current) fileRef.current.value = '';
     }
@@ -101,17 +120,28 @@ export default function CreatePost() {
           </div>
         </div>
 
-        {/* Image preview */}
+        {/* Image preview — dimmed with spinner while uploading in background */}
         {imagePreview && (
           <div className="mt-2 position-relative d-inline-block">
             <img
               src={imagePreview}
               alt="Preview"
-              style={{ maxHeight: 200, borderRadius: 8, maxWidth: '100%' }}
+              style={{
+                maxHeight: 200,
+                borderRadius: 8,
+                maxWidth: '100%',
+                opacity: isUploading ? 0.5 : 1,
+              }}
             />
+            {isUploading && (
+              <div
+                className="position-absolute top-50 start-50 translate-middle spinner-border spinner-border-sm text-primary"
+                role="status"
+              />
+            )}
             <button
               type="button"
-              onClick={() => { setImageFile(null); setImagePreview(''); }}
+              onClick={() => { setImageUrl(''); setImagePreview(''); if (fileRef.current) fileRef.current.value = ''; }}
               className="btn btn-sm btn-danger position-absolute top-0 end-0"
               style={{ borderRadius: '50%', padding: '2px 6px' }}
             >
