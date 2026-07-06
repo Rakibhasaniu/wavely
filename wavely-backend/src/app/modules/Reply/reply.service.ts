@@ -4,7 +4,7 @@ import AppError from '../../errors/AppError';
 import {
   attachRecentLikers,
   deleteLikesForTarget,
-  getAllLikersSorted,
+  getLikersPage,
   toggleLike as toggleLikeRecord,
 } from '../Like/like.service';
 import { Comment } from '../Comment/comment.model';
@@ -133,13 +133,13 @@ const toggleLike = async (replyId: string, userId: string) => {
 };
 
 // GET /replies/:id/likes
-const getLikes = async (replyId: string, userId: string) => {
+const getLikes = async (replyId: string, userId: string, cursor?: string) => {
   await assertReplyAccessibleByReplyId(replyId, userId);
   const reply = await Reply.findById(replyId).lean();
   if (!reply) {
     throw new AppError(httpStatus.NOT_FOUND, 'Reply not found');
   }
-  return getAllLikersSorted('reply', reply._id as Types.ObjectId);
+  return getLikersPage('reply', reply._id as Types.ObjectId, cursor);
 };
 
 export const ReplyServices = {

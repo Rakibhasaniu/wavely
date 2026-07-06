@@ -53,7 +53,11 @@ const toggleLike = catchAsync(async (req, res) => {
 });
 
 const getLikes = catchAsync(async (req, res) => {
-  const result = await PostServices.getLikes(req.params.id, req.user.userId);
+  const result = await PostServices.getLikes(
+    req.params.id,
+    req.user.userId,
+    req.query.cursor as string | undefined,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

@@ -95,16 +95,36 @@ export async function getRecentLikers(
   return docs.map((d) => d.userId).filter(Boolean) as LikerUser[];
 }
 
-export async function getAllLikersSorted(
+const LIKERS_PER_PAGE = 20;
+
+/**
+ * Paginated "who liked" — never return all likers unbounded:
+ * a viral post can hold hundreds of thousands of likes (200k ≈ 18MB / 50s+).
+ * Cursor on _id (creation-ordered), hard page cap.
+ */
+export async function getLikersPage(
   targetType: TLikeTargetType,
   targetObjectId: Types.ObjectId,
-): Promise<LikerUser[]> {
-  const docs = await Like.find({ targetType, targetId: targetObjectId })
-    .sort({ createdAt: -1 })
+  cursor?: string,
+): Promise<{ users: LikerUser[]; nextCursor: string | null }> {
+  const query: Record<string, unknown> = { targetType, targetId: targetObjectId };
+  if (cursor) {
+    query._id = { $lt: new Types.ObjectId(cursor) };
+  }
+
+  const docs = await Like.find(query)
+    .sort({ _id: -1 })
+    .limit(LIKERS_PER_PAGE)
     .populate<{ userId: LikerUser }>('userId', 'firstName lastName avatar')
     .lean();
 
-  return docs.map((d) => d.userId).filter(Boolean) as LikerUser[];
+  return {
+    users: docs.map((d) => d.userId).filter(Boolean) as LikerUser[],
+    nextCursor:
+      docs.length === LIKERS_PER_PAGE
+        ? (docs[docs.length - 1]._id as Types.ObjectId).toString()
+        : null,
+  };
 }
 
 /** Batch-attach up to `limit` recent likers per target (for feed / lists). */

@@ -7,7 +7,7 @@ import { Reply } from '../Reply/reply.model';
 import {
   attachRecentLikers,
   deleteLikesForTarget,
-  getAllLikersSorted,
+  getLikersPage,
   toggleLike as toggleLikeRecord,
 } from '../Like/like.service';
 import { Like } from '../Like/like.model';
@@ -161,7 +161,7 @@ const toggleLike = async (postId: string, userId: string) => {
   return toggleLikeRecord('post', postId, userId);
 };
 
-const getLikes = async (postId: string, userId: string) => {
+const getLikes = async (postId: string, userId: string, cursor?: string) => {
   const post = await Post.findById(postId).lean();
 
   if (!post) {
@@ -175,7 +175,7 @@ const getLikes = async (postId: string, userId: string) => {
     throw new AppError(httpStatus.FORBIDDEN, 'Post not accessible');
   }
 
-  return getAllLikersSorted('post', post._id as Types.ObjectId);
+  return getLikersPage('post', post._id as Types.ObjectId, cursor);
 };
 
 export const PostServices = {

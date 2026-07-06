@@ -1,7 +1,7 @@
 import httpStatus from 'http-status';
 import { Types } from 'mongoose';
 import AppError from '../../errors/AppError';
-import { deleteLikesForTarget, attachRecentLikers, getAllLikersSorted, toggleLike as toggleLikeRecord } from '../Like/like.service';
+import { deleteLikesForTarget, attachRecentLikers, getLikersPage, toggleLike as toggleLikeRecord } from '../Like/like.service';
 import { Like } from '../Like/like.model';
 import { Post } from '../Post/post.model';
 import { Reply } from '../Reply/reply.model';
@@ -153,13 +153,13 @@ const toggleLike = async (commentId: string, userId: string) => {
   return toggleLikeRecord('comment', commentId, userId);
 };
 
-const getLikes = async (commentId: string, userId: string) => {
+const getLikes = async (commentId: string, userId: string, cursor?: string) => {
   await assertCommentPostAccessible(commentId, userId);
   const comment = await Comment.findById(commentId).lean();
   if (!comment) {
     throw new AppError(httpStatus.NOT_FOUND, 'Comment not found');
   }
-  return getAllLikersSorted('comment', comment._id as Types.ObjectId);
+  return getLikersPage('comment', comment._id as Types.ObjectId, cursor);
 };
 
 export const CommentServices = {

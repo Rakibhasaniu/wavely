@@ -25,5 +25,6 @@ const likeSchema = new Schema<TLike>(
 
 likeSchema.index({ targetType: 1, targetId: 1, userId: 1 }, { unique: true });
 likeSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
+likeSchema.index({ targetType: 1, targetId: 1, _id: -1 }); // who-liked pagination
 
 export const Like = model<TLike>('Like', likeSchema);
