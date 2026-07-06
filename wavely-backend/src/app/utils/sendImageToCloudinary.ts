@@ -35,14 +35,33 @@ export const sendImageToCloudinary = (
   });
 };
 
+const UPLOAD_DIR = process.cwd() + '/uploads/';
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, process.cwd() + '/uploads/');
+    cb(null, UPLOAD_DIR);
   },
   filename: function (req, file, cb) {
+    // server-generated name — never trust the client's filename
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, file.fieldname + '-' + uniqueSuffix);
   },
 });
 
-export const upload = multer({ storage: storage });
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+export const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB cap
+  fileFilter: (req, file, cb) => {
+    // MIME whitelist server-side — extension alone can lie
+    if (ALLOWED_MIME.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only jpeg, png, webp or gif images are allowed'));
+    }
+  },
+});
