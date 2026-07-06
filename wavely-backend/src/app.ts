@@ -21,7 +21,7 @@ const authLimiter = rateLimit({
 
 const feedLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 60,
+  max: 300, // ~5 req/sec per IP — generous for real browsing, still caps abuse
   message: { success: false, message: 'Too many requests, slow down.' },
   standardHeaders: true,
   legacyHeaders: false,
