@@ -10,7 +10,9 @@
     "lint": "eslint src --ignore-path .eslintignore --ext .ts",
     "lint:fix": "npx eslint src --fix",
     "prettier": "prettier --ignore-path .gitignore --write \"./src/**/*.+(js|ts|json)\"",
-    "prettier:fix": "npx prettier --write src"
+    "prettier:fix": "npx prettier --write src",
+    "seed": "tsx src/scripts/seed.ts",
+    "explain": "tsx src/scripts/explain.ts"
   },
   "keywords": [],
   "author": "",

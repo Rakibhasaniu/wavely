@@ -89,3 +89,20 @@ likes:    (targetType, targetId, userId) UNIQUE   ← one like per user, race-pr
           (targetType, targetId, _id)              ← who-liked pagination
 users:    email UNIQUE
 ```
+
+## Reproducing the scale claims
+
+```bash
+# seed volume (safe on a throwaway DB; override counts with env vars)
+USERS=2000 POSTS=20000 COMMENTS=20000 HOT_POST_LIKES=2000 yarn seed
+
+# prove the feed query uses an index, not a collection scan
+yarn explain
+# → IXSCAN, docs examined ≈ 10 out of the full count
+
+# concurrency (needs k6 installed + a valid token)
+TOKEN=<accessToken> BASE=http://localhost:5000/api/v1 k6 run loadtest/feed.k6.js
+```
+
+On the Atlas free tier (512MB) keep totals modest. The like count on a "hot"
+post is capped by user count, since one user can like a post only once.
