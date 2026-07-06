@@ -1,36 +1,38 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Wavely frontend
 
-## Getting Started
+Next.js (App Router, TypeScript) client for Wavely. The UI comes from the provided template  its CSS and assets are used unmodified under `public/assets`, converted from static HTML to React components. See the root README for the overall picture.
 
-First, run the development server:
+## Setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+yarn install
+echo 'NEXT_PUBLIC_API_URL=http://localhost:5000/api/v1' > .env.local
+yarn dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The backend has to be running (see `../wavely-backend`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/
+│   ├── (auth)/login, (auth)/register     # public pages
+│   └── (main)/feed                       # protected
+├── components/
+│   ├── auth/       LoginForm, RegisterForm
+│   ├── feed/       FeedClient, CreatePost, PostCard, CommentSection,
+│   │               ReplySection, LikesModal
+│   └── shared/     Navbar, Avatar, Spinner
+├── store/          Redux Toolkit — auth, posts, comments, replies slices
+├── lib/axios.ts    public + private instances, token attach, 401 refresh+retry
+└── hooks/          useAuthInit (rehydrates session from localStorage)
+```
 
-## Learn More
+## Things worth knowing
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Route protection** is a client guard (redirect to /login without a token) — real enforcement is the API rejecting requests without a valid JWT.
+- **Infinite scroll**: the template's middle column is its own scroll container (`overflow: auto`, hidden scrollbar), so the IntersectionObserver is rooted at that element via `closest()`, attached with a callback ref. Watching the viewport doesn't work in this layout.
+- **Image posting** is eager: on file select the image is compressed on a canvas (max 1600px, ~10x smaller) and uploaded to the API in the background while the user is still typing. Submitting the post is then a small JSON call, so it feels instant.
+- **Request dedupe**: fetch thunks use Redux Toolkit's `condition` to check the store at dispatch time — opening a comment section twice, StrictMode's double effects, or a double click won't fire a second identical request.
+- **Like state** comes from the server (`likedByMe`) rather than being derived from the recent-likers preview, which would be wrong whenever your like isn't among the newest ones.
