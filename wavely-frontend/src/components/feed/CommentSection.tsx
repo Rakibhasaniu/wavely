@@ -5,6 +5,7 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { useEffect, useState } from 'react';
 import Avatar from '../shared/Avatar';
 import LikesModal from './LikesModal';
+import ReplySection from './ReplySection';
 
 export default function CommentSection({ postId }: { postId: string }) {
   const dispatch = useAppDispatch();
@@ -168,7 +169,7 @@ export default function CommentSection({ postId }: { postId: string }) {
                   </span>
                 </div>
 
-                
+                {openReplies[comment._id] && <ReplySection commentId={comment._id} />}
               </div>
             </div>
           );

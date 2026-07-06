@@ -8,6 +8,7 @@ import {
   toggleLike as toggleLikeRecord,
 } from '../Like/like.service';
 import { Comment } from '../Comment/comment.model';
+import { Like } from '../Like/like.model';
 import { Post } from '../Post/post.model';
 import { Reply } from './reply.model';
 
@@ -57,6 +58,21 @@ const getReplies = async (commentId: string, userId: string) => {
   replies.forEach((r) => {
     (r as unknown as { likes: unknown[] }).likes = likeMap.get(r._id.toString()) ?? [];
   });
+
+  // likedByMe: recent-likers preview can't answer "did I like this?" — one batched query
+  if (replies.length > 0) {
+    const myLikes = await Like.find({
+      targetType: 'reply',
+      targetId: { $in: replies.map((r) => r._id) },
+      userId: new Types.ObjectId(userId),
+    })
+      .select('targetId')
+      .lean();
+    const likedSet = new Set(myLikes.map((l) => l.targetId.toString()));
+    replies.forEach((r) => {
+      (r as unknown as { likedByMe: boolean }).likedByMe = likedSet.has(r._id.toString());
+    });
+  }
 
   return replies;
 };
