@@ -1,6 +1,6 @@
 'use client';
 
-import { deletePost, togglePostLike } from '@/store/slices/postSlice';
+import { deletePost, togglePostLike, updatePost } from '@/store/slices/postSlice';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { IPost } from '@/types';
 import { useState } from 'react';
@@ -16,6 +16,20 @@ export default function PostCard({ post }: Props) {
   const [showComments, setShowComments] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showLikes, setShowLikes] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState(post.text);
+  const [editVisibility, setEditVisibility] = useState(post.visibility);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleSaveEdit = async () => {
+    if (!editText.trim() || isSaving) return;
+    setIsSaving(true);
+    const result = await dispatch(
+      updatePost({ postId: post._id, text: editText, visibility: editVisibility }),
+    );
+    setIsSaving(false);
+    if (updatePost.fulfilled.match(result)) setIsEditing(false);
+  };
 
   const isOwner = user?._id === post.author._id;
   const isLiked = post.likedByMe ?? post.likes?.some((u) => u._id === user?._id);
@@ -100,7 +114,15 @@ export default function PostCard({ post }: Props) {
                   {isOwner && (
                     <>
                       <li className="_feed_timeline_dropdown_item">
-                        <a href="#0" className="_feed_timeline_dropdown_link">
+                        <button
+                          className="_feed_timeline_dropdown_link border-0 bg-transparent w-100 text-start"
+                          onClick={() => {
+                            setEditText(post.text);
+                            setEditVisibility(post.visibility);
+                            setIsEditing(true);
+                            setShowDropdown(false);
+                          }}
+                        >
                           <span>
                             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 18 18">
                               <path stroke="#1890FF" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.2" d="M8.25 3H3a1.5 1.5 0 00-1.5 1.5V15A1.5 1.5 0 003 16.5h10.5A1.5 1.5 0 0015 15V9.75" />
@@ -108,7 +130,7 @@ export default function PostCard({ post }: Props) {
                             </svg>
                           </span>
                           Edit Post
-                        </a>
+                        </button>
                       </li>
                       <li className="_feed_timeline_dropdown_item">
                         <button
@@ -134,8 +156,46 @@ export default function PostCard({ post }: Props) {
           </div>
         </div>
 
-        {/* Post text */}
-        <h4 className="_feed_inner_timeline_post_title">{post.text}</h4>
+        {/* Post text — inline edit mode when author chose Edit Post */}
+        {isEditing ? (
+          <div className="mb-2">
+            <textarea
+              className="form-control _textarea mb-2"
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              rows={3}
+              maxLength={5000}
+            />
+            <div className="d-flex align-items-center gap-2">
+              <select
+                className="form-select form-select-sm w-auto"
+                value={editVisibility}
+                onChange={(e) => setEditVisibility(e.target.value as 'public' | 'private')}
+              >
+                <option value="public">Public</option>
+                <option value="private">Private</option>
+              </select>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm"
+                onClick={handleSaveEdit}
+                disabled={isSaving || !editText.trim()}
+              >
+                {isSaving ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline-secondary btn-sm"
+                onClick={() => setIsEditing(false)}
+                disabled={isSaving}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <h4 className="_feed_inner_timeline_post_title">{post.text}</h4>
+        )}
 
         {/* Post image */}
         {post.image && (

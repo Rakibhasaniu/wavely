@@ -44,6 +44,25 @@ export const createPost = createAsyncThunk(
   },
 );
 
+export const updatePost = createAsyncThunk(
+  'posts/update',
+  async (
+    { postId, text, visibility }: { postId: string; text?: string; visibility?: 'public' | 'private' },
+    { rejectWithValue },
+  ) => {
+    try {
+      const res = await axiosPrivate.patch(`/posts/${postId}`, {
+        ...(text !== undefined && { text }),
+        ...(visibility !== undefined && { visibility }),
+      });
+      return res.data.data as IPost;
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      return rejectWithValue(error.response?.data?.message || 'Failed to update post');
+    }
+  },
+);
+
 export const deletePost = createAsyncThunk(
   'posts/delete',
   async (postId: string, { rejectWithValue }) => {
@@ -123,6 +142,15 @@ const postSlice = createSlice({
         state.isCreating = false;
         state.error = action.payload as string;
       });
+
+    // update post — patch only edited fields, keep likes/likedByMe intact
+    builder.addCase(updatePost.fulfilled, (state, action) => {
+      const post = state.posts.find((p) => p._id === action.payload._id);
+      if (post) {
+        post.text = action.payload.text;
+        post.visibility = action.payload.visibility;
+      }
+    });
 
     // delete post
     builder.addCase(deletePost.fulfilled, (state, action) => {

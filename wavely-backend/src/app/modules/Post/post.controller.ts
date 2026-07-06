@@ -43,6 +43,21 @@ const uploadImage = catchAsync(async (req, res) => {
   });
 });
 
+const updatePost = catchAsync(async (req, res) => {
+  const result = await PostServices.updatePost(
+    req.params.id,
+    req.user.userId,
+    req.body,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Post updated successfully',
+    data: result,
+  });
+});
+
 const deletePost = catchAsync(async (req, res) => {
   await PostServices.deletePost(req.params.id, req.user.userId);
 
@@ -84,6 +99,7 @@ export const PostControllers = {
   getFeed,
   createPost,
   uploadImage,
+  updatePost,
   deletePost,
   toggleLike,
   getLikes,

@@ -121,6 +121,29 @@ const createPost = async (
   return plain;
 };
 
+// PATCH /posts/:id — author-scoped in the query itself: a post that exists
+// but is not yours is indistinguishable from a post that does not exist (404,
+// no IDOR, no existence leak)
+const updatePost = async (
+  postId: string,
+  userId: string,
+  payload: { text?: string; visibility?: 'public' | 'private' },
+) => {
+  const post = await Post.findOneAndUpdate(
+    { _id: postId, author: new Types.ObjectId(userId) },
+    { $set: payload },
+    { new: true },
+  )
+    .populate('author', 'firstName lastName avatar')
+    .lean();
+
+  if (!post) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Post not found');
+  }
+
+  return post;
+};
+
 // DELETE /posts/:id — only author can delete; cascade comments, replies, likes
 const deletePost = async (postId: string, userId: string) => {
   const post = await Post.findById(postId);
@@ -194,6 +217,7 @@ export const PostServices = {
   getFeed,
   createPost,
   uploadImage,
+  updatePost,
   deletePost,
   toggleLike,
   getLikes,

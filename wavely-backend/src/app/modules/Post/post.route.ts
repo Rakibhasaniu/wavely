@@ -30,6 +30,13 @@ router.post(
   PostControllers.uploadImage,
 );
 
+router.patch(
+  '/:id',
+  auth,
+  validateRequest(PostValidation.updatePostValidationSchema),
+  PostControllers.updatePost,
+);
+
 router.delete('/:id', auth, PostControllers.deletePost);
 
 router.patch('/:id/like', auth, PostControllers.toggleLike);

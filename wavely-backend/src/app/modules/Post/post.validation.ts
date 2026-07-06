@@ -18,6 +18,23 @@ const createPostValidationSchema = z.object({
   }),
 });
 
+const updatePostValidationSchema = z.object({
+  body: z
+    .object({
+      text: z
+        .string()
+        .trim()
+        .min(1, 'Post cannot be empty')
+        .max(5000, 'Post cannot exceed 5000 characters')
+        .optional(),
+      visibility: z.enum(['public', 'private']).optional(),
+    })
+    .refine((b) => b.text !== undefined || b.visibility !== undefined, {
+      message: 'Nothing to update',
+    }),
+});
+
 export const PostValidation = {
   createPostValidationSchema,
+  updatePostValidationSchema,
 };
