@@ -2,8 +2,12 @@
 
 A social feed application built for the Appifylab Full Stack Engineer selection task. The provided Buddy Script HTML/CSS template was converted into a working full-stack app with authentication, posts, comments, replies and a like system.
 
-**Live:** 
-**Demo video:** 
+**Live:** https://wavely-xi.vercel.app
+**API:** https://wavely-api-2wem.onrender.com
+**Demo video:** _to follow_
+
+> Note: the API runs on Render's free tier, which sleeps after inactivity — the
+> first request after an idle period can take ~50s to wake, then it's fast.
 
 ## Stack
 
@@ -62,6 +66,32 @@ The task asks for a design that assumes millions of posts and reads. Every query
 The load test also caught a real bug: the liked-by endpoint originally returned *all* likers in one response. With 5 likes in development nobody notices. At 200k it was an **18 MB response taking ~52 seconds**. It's now cursor-paginated at 20 per page with a supporting index and responds in a few milliseconds. That's exactly why load testing before shipping matters — the worst scaling problems are invisible in a dev database.
 
 The practical ceiling for the test was the Atlas free tier (512 MB storage), not the query design.
+
+### Verify it yourself
+
+The repo ships the scripts used to produce these numbers (see `wavely-backend`):
+
+```bash
+cd wavely-backend
+
+# seed volume onto a throwaway DB (override any count via env vars)
+USERS=2000 POSTS=20000 COMMENTS=20000 HOT_POST_LIKES=2000 yarn seed
+
+# run explain() on the feed, comments and who-liked queries
+yarn explain
+# each prints: docs examined, time, and the plan — all IXSCAN, examined ~1–11
+
+# concurrency test (needs k6 + a login token)
+TOKEN=<accessToken> BASE=http://localhost:5000/api/v1 k6 run loadtest/feed.k6.js
+```
+
+Example `yarn explain` output against a seeded database:
+
+```
+FEED       220,015 posts   → examined 11,  IXSCAN
+COMMENTS    20,005 rows    → examined 3,   IXSCAN
+WHO-LIKED  801,100 likes   → examined 1,   IXSCAN
+```
 
 ## Security
 
